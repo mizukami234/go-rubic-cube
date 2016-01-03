@@ -1,7 +1,8 @@
 package cube
 
 import (
-	"fmt"
+	"bytes"
+	"strconv"
 )
 
 /**
@@ -59,7 +60,7 @@ func CreateInitialCube() Cube {
 			Face{4, 4, 4, 4, 4, 4, 4, 4, 4},
 			Face{5, 5, 5, 5, 5, 5, 5, 5, 5},
 		},
-	};
+	}
 }
 
 func (c Cube) Equal(d Cube) bool {
@@ -110,11 +111,36 @@ func (c Cube) MapFaces(f func(Face, FaceSel) Face) (new_cube Cube) {
 	return
 }
 
-func (f Face) String() string {
-	return fmt.Sprintf("%v", f)
+var cube_map_str = [9][]int{
+	[]int{ -1, -1, -1, 32, 31, 30 },
+	[]int{ -1, -1, -1, 35, 34, 33 },
+	[]int{ -1, -1, -1, 38, 37, 36 },
+	[]int{ 28, 27, 26, 12, 15, 18, 52, 51, 50, 40, 43, 46 },
+	[]int{ 25, 24, 23, 11, 14, 17, 55, 54, 53, 41, 44, 47 },
+	[]int{ 22, 21, 20, 10, 13, 16, 58, 57, 56, 42, 45, 48 },
+	[]int{ -1, -1, -1,  0,  1,  2 },
+	[]int{ -1, -1, -1,  3,  4,  5 },
+	[]int{ -1, -1, -1,  6,  7,  8 },
 }
 
 func (c Cube) String() string {
-	return fmt.Sprintf("%v", c)
+	var buffer bytes.Buffer
+	for _, line := range cube_map_str {
+		for _, magic := range line {
+			if magic == -1 {
+				buffer.WriteString("  ")
+			} else {
+				var (
+					face_n = int(magic / 10)
+					polar = int(face_n / 3)
+					n = face_n % 3
+					i = magic % 10
+				)
+				buffer.WriteString(" "+strconv.Itoa(int(c[polar][n][i])))
+			}
+		}
+		buffer.WriteString("\n")
+	}
+	return buffer.String()
 }
 
