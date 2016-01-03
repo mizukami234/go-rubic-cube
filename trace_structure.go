@@ -3,7 +3,6 @@ package main
 import (
 	"github.com/cheggaaa/pb"
 	"fmt"
-	"sort"
 	. "cube"
 	tr "tracer"
 )
@@ -29,12 +28,13 @@ func include_suffix(suffix_paths []tr.Path, path tr.Path) bool {
 }
 
 func search_all_states() tr.CubeSet {
-	var known_states = tr.CubeSet{INIT}
+	//var known_states = tr.CubeSet{INIT}
+	var known_cubes = &tr.ManagedCubeSet{}
 	var known_identities = []tr.Path{}
-	return search_moves_rec([]tr.Move{tr.Move{tr.Path{}, INIT}}, known_states, known_identities)
+	return search_moves_rec([]tr.Move{tr.Move{tr.Path{}, INIT}}, known_cubes, known_identities)
 }
 
-func search_moves_rec(prev_moves []tr.Move, known_states tr.CubeSet, known_identities []tr.Path) tr.CubeSet {
+func search_moves_rec(prev_moves []tr.Move, known_cubes *tr.ManagedCubeSet, known_identities []tr.Path) tr.CubeSet {
 	fmt.Printf("----\n")
 	depth++
 	fmt.Printf("DEPTH: %d\n", depth)
@@ -47,11 +47,9 @@ func search_moves_rec(prev_moves []tr.Move, known_states tr.CubeSet, known_ident
 	bar := pb.StartNew(search_count)
 
 	moves := []tr.Move{}
-	new_known_states := tr.CubeSet{}
 	for _, prev_move := range prev_moves {
 		bar.Increment()
 		new_steps := prev_move.NextSteps()
-		this_known_states := tr.CubeSet{}
 		for _, new_step := range new_steps {
 			// new step returns initial state
 			if new_step.Cube.Equal(INIT) {
@@ -65,39 +63,30 @@ func search_moves_rec(prev_moves []tr.Move, known_states tr.CubeSet, known_ident
 				continue
 			}
 			// new step got known state
-			if known_states.HasCube(new_step.Cube) {
-				count_knowns++
-				continue
-			}
-			// new known state
-			if new_known_states.HasCube(new_step.Cube) {
+			if known_cubes.HasCube(new_step.Cube) {
 				count_knowns++
 				continue
 			}
 			// otherwise register known state and new move
 			moves = append(moves, new_step)
-			this_known_states = append(this_known_states, new_step.Cube)
-			//sort.Sort(known_states)
+			known_cubes.AddCube(new_step.Cube)
 		}
-		new_known_states = append(new_known_states, this_known_states...)
-		sort.Sort(new_known_states)
 	}
 
-	known_states = append(known_states, new_known_states...)
-	sort.Sort(known_states)
+	known_cubes.ForceSort()
 
 	bar.FinishPrint("finished.")
 
 	fmt.Printf("identity paths:       %d\n", count_ids)
-	fmt.Printf("found known states:   %d\n", count_knowns)
+	fmt.Printf("found known cubes:    %d\n", count_knowns)
 	fmt.Printf("found new paths:      %d\n", len(moves))
 	fmt.Printf("percent uncultivated: %f\n", float64(len(moves))/float64(len(prev_moves)*6))
 	fmt.Printf("current known ids:    %d\n", len(known_identities))
-	fmt.Printf("current known states: %d\n", len(known_states))
+	fmt.Printf("current known cubes:  %d\n", known_cubes.Len())
 	if (len(moves) > 0) {
-		return search_moves_rec(moves, known_states, known_identities)
+		return search_moves_rec(moves, known_cubes, known_identities)
 	} else {
-		return known_states
+		return known_cubes.GetCubes()
 	}
 }
 

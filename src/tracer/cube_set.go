@@ -38,3 +38,36 @@ func (cs CubeSet) include(c Cube) bool {
 	}
 	return false
 }
+
+type ManagedCubeSet struct{
+	sortedSet CubeSet
+	unsortedSet CubeSet
+}
+
+func (mcs *ManagedCubeSet) AddCube(c Cube) {
+	mcs.unsortedSet = append(mcs.unsortedSet, c)
+	if len(mcs.unsortedSet) == 10000 {
+		mcs.ForceSort()
+	}
+}
+
+func (mcs *ManagedCubeSet) ForceSort() {
+	mcs.sortedSet = append(mcs.sortedSet, mcs.unsortedSet...)
+	sort.Sort(mcs.sortedSet)
+	mcs.unsortedSet = CubeSet{}
+}
+
+func (mcs *ManagedCubeSet) Len() int {
+	return len(mcs.sortedSet)+len(mcs.unsortedSet)
+}
+
+func (mcs *ManagedCubeSet) HasCube(c Cube) bool {
+	if mcs.sortedSet.HasCube(c) { return true }
+	if mcs.unsortedSet.include(c) { return true }
+	return false
+}
+
+func (mcs *ManagedCubeSet) GetCubes() CubeSet {
+	mcs.ForceSort()
+	return mcs.sortedSet
+}
